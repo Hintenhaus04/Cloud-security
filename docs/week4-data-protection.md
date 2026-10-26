@@ -1,38 +1,37 @@
 # Week 4: Data protection (praktische opdrachten 4.2 t/m 4.4)
 
-Alles staat in de map [`data-protection/`](../data-protection). Die map is los van de applicatie-omgeving en heeft
-een eigen state (`data-protection/terraform.tfstate` in je state bucket).
+Alles staat in de map [`data-protection/`](../data-protection) en is los van de applicatie-omgeving.
 
-| Bestand            | Opdracht | Inhoud                                                                  |
-|--------------------|----------|-------------------------------------------------------------------------|
-| `buckets.tf`       | 4.2      | Buckets `saxit-openbaar/intern/geheim-<account>`, encryptie, policies   |
-| `kms.tf`           | 4.3      | Customer managed key met origin EXTERNAL (BYOK), alias `saxit-geheim-byok` |
-| `logging.tf`       | 4.4      | Access logging + CloudTrail data events voor de geheime bucket          |
-| `alerting.tf`      | 4.4      | EventBridge rule -> SNS -> e-mail bij `GetObject` op de geheime bucket  |
-| `dashboard.tf`     | 4.4      | CloudWatch dashboard `SaxIT-S3-data-protection`                         |
-| `scripts/byok-import.sh` | 4.3 | Keymateriaal maken met OpenSSL en importeren in KMS                  |
-| `scripts/demo-uploads.sh` | 4.2/4.4 | Toont toegestane en geweigerde uploads, en downloadt het geheime object |
+Week 4 is uitgevoerd met een **AWS CLI-script** in plaats van Terraform. De Terraform AWS provider (v4 en hoger) leest
+na het aanmaken van iedere S3 bucket de *object lock configuration* uit, en die actie
+(`s3:GetBucketObjectLockConfiguration`) wordt in het Learner Lab geblokkeerd door een service control policy. Het
+script doet hetzelfde als de Terraform-versie, is idempotent (je kunt het veilig opnieuw draaien) en heeft geen
+provider-download nodig, wat in CloudShell met 1 GB opslag ook scheelt.
+
+| Bestand                   | Opdracht | Inhoud                                                                   |
+|---------------------------|----------|--------------------------------------------------------------------------|
+| `scripts/setup.sh`        | 4.2–4.4  | Buckets met encryptie en policies, BYOK KMS key, access logging, CloudTrail, EventBridge -> SNS, dashboard |
+| `scripts/byok-import.sh`  | 4.3      | Keymateriaal maken met OpenSSL en importeren in KMS                      |
+| `scripts/demo-uploads.sh` | 4.2/4.4  | Toont toegestane en geweigerde uploads, en downloadt het geheime object  |
 
 ## Uitrollen (CloudShell)
 
 ```bash
-cd Cloud-security/data-protection
-terraform init -backend-config="bucket=$STATE_BUCKET"
-terraform apply -var="alert_email=<jouw-mailadres>"
+cd ~/Cloud-security/data-protection
+./scripts/setup.sh <jouw-mailadres>
 ```
 
 Bevestig daarna de mail *AWS Notification - Subscription Confirmation*.
 
-Geeft het Learner Lab een `AccessDenied` op de EventBridge rule, draai dan
-`terraform apply -var="alert_email=..." -var="enable_alerting=false"` en laat in je werkstuk
-[`alerting.tf`](../data-protection/alerting.tf) zien, plus de rule zoals je hem in de console zou aanmaken
-(EventBridge > Rules > Create rule, met het event pattern uit dat bestand en het SNS topic als target).
+Weigert het Learner Lab de EventBridge rule, dan meldt het script dat en print het event pattern. Laat dat in je
+werkstuk zien, plus de rule zoals je hem in de console zou aanmaken (EventBridge > Rules > Create rule, met dat event
+pattern en het SNS topic `saxit-geheim-gelezen` als target).
 
 ## 4.2 Buckets, encryptie en policies
 
 - **Encryptie**: `openbaar` en `intern` gebruiken de standaard encryptie SSE-S3 (AES256). `geheim` gebruikt SSE-KMS
   met de BYOK key en een S3 bucket key.
-- **Policy per bucket** (zie `aws_iam_policy_document.data`):
+- **Policy per bucket** (zie `bucket_policy` in `setup.sh`):
   - `DenyInsecureTransport`: alleen HTTPS (encryptie in transit).
   - `DenyUnencryptedUploads` en `DenyWrongEncryptionType`: een upload moet expliciet het juiste encryptietype
     meesturen. Voor `geheim` moet het `aws:kms` zijn én (`DenyOtherKmsKeys`) precies de BYOK key.
@@ -82,7 +81,7 @@ tweede slot op de deur.
 ## 4.3 BYOK met eigen keymateriaal
 
 ```bash
-./scripts/byok-import.sh "$(terraform output -raw geheim_kms_key_id)"
+./scripts/byok-import.sh
 ```
 
 Het script:
@@ -106,7 +105,7 @@ geheime bucket schrijven.
 de CloudTrail logs in de log bucket:
 
 ```bash
-LOGS=$(terraform output -raw log_bucket)
+LOGS=saxit-logs-$(aws sts get-caller-identity --query Account --output text)
 aws s3 cp "s3://$LOGS/AWSLogs/" ./trail --recursive --exclude "*" --include "*CloudTrail/*"
 zcat $(find trail -name '*.json.gz') | python3 -c '
 import json,sys
@@ -133,7 +132,9 @@ request metrics na ongeveer 15 minuten.
 
 ## Opruimen
 
-`terraform destroy` in `data-protection/`. De KMS key gaat dan 7 dagen in *Pending deletion*.
+Leeg en verwijder de buckets in de S3 console (*Empty* en daarna *Delete*), verwijder de trail
+`saxit-geheim-data-events`, de EventBridge rule, het SNS topic en het dashboard, en plan de KMS key in voor
+verwijdering (*Schedule key deletion*, minimaal 7 dagen).
 
 ## Overig
 
