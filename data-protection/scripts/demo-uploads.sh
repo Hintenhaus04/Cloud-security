@@ -20,7 +20,12 @@ expect() {
 for c in openbaar intern geheim; do
   bucket="saxit-$c-$ACCOUNT"
   file="$TMP/demo-$c.txt"
-  echo "Demodocument met classificatie $c, aangemaakt $(date -u +%FT%TZ)" > "$file"
+  # Demobestanden uit de SaxIT-dataset (zie docs/week4-1-dataclassificatie.md)
+  case $c in
+    openbaar) printf 'SaxIT prijslijst 2026 (D02)\nBasic;49\nPro;149\nEnterprise;499\n' > "$file" ;;
+    intern)   printf 'Runbook database failover (D07)\n1. Controleer RDS status\n2. Start failover via console\n' > "$file" ;;
+    geheim)   printf 'Klantexport contactpersonen (D13) - fictief\nK1001;Veldhuis Logistiek;Sanne de Vries;sanne.devries@veldhuislogistiek.example.nl\n' > "$file" ;;
+  esac
 
   if [[ $c == geheim ]]; then
     enc=(--server-side-encryption aws:kms --ssekms-key-id "$KMS_ARN")

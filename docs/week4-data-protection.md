@@ -135,7 +135,6 @@ request metrics na ongeveer 15 minuten.
 
 `terraform destroy` in `data-protection/`. De KMS key gaat dan 7 dagen in *Pending deletion*.
 
-## Nog nodig
+## Overig
 
-Voor 4.1 (classificatie van de dataset) ontbreekt de dataset in de projectbestanden. Lab 5.1 (4.5) doe je zelf in
-AWS Academy.
+4.1 staat in [week4-1-dataclassificatie.md](week4-1-dataclassificatie.md). Lab 5.1 (4.5) doe je zelf in AWS Academy.
