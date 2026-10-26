@@ -10,5 +10,7 @@ het AWS Learner Lab.
 | `.github/workflows/infra.yml`        | Pipeline: validate, en op `main` destroy + apply van `infra/`  |
 | `docs/01-omgeving-herbouwen.md`      | Stappenplan om de omgeving opnieuw neer te zetten              |
 | `docs/week3-infrastructure-protection.md` | Uitwerking opdracht 3.1 t/m 3.3                           |
+| `data-protection/`                   | S3 buckets per classificatie, BYOK KMS key, logging en alerts (week 4) |
+| `docs/week4-data-protection.md`      | Uitwerking opdracht 4.2 t/m 4.4                                |
 
 Begin bij [docs/01-omgeving-herbouwen.md](docs/01-omgeving-herbouwen.md).
