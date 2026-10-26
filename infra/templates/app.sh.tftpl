@@ -1,0 +1,17 @@
+#!/bin/bash
+exec > /var/log/user-data.log 2>&1
+apt-get update -y
+apt-get upgrade -y
+apt-get install -y docker.io git
+systemctl enable --now docker
+usermod -aG docker ubuntu
+
+#Build the backend image
+git clone https://github.com/intro-infra/cloudsec.git /cloudsec
+cd /cloudsec/backend
+docker build -t backend .
+docker run --restart always \
+  -e SPRING_DATASOURCE_URL=jdbc:mysql://${db_address}/${db_name} \
+  -e SPRING_DATASOURCE_USERNAME='${db_username}' \
+  -e SPRING_DATASOURCE_PASSWORD='${db_password}' \
+  -p 8080:8080 -d backend

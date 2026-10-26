@@ -1,0 +1,52 @@
+#!/bin/bash
+exec > /var/log/user-data.log 2>&1
+apt-get update -y
+apt-get upgrade -y
+apt-get install -y docker.io git
+systemctl enable --now docker
+usermod -aG docker ubuntu
+
+#Build the frontend image
+git clone https://github.com/intro-infra/cloudsec.git /cloudsec
+cd /cloudsec/frontend
+
+# Lege base URL: de browser roept /api/... aan op dezelfde webserver (via de presentation-lb).
+echo "REACT_APP_API_BASE_URL=" > .env
+
+# nginx serveert de React app en stuurt /api/ door naar de interne application-lb.
+# resolver + variabele zorgen dat nginx wisselende IP's van de load balancer blijft volgen.
+cat > .docker/nginx.conf <<'NGINX'
+events {
+    worker_connections 1024;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    server_tokens off;
+    resolver ${dns_resolver} valid=30s;
+
+    server {
+        listen 80;
+        server_name _;
+
+        location /api/ {
+            set $backend "http://${app_lb_dns}:8080";
+            proxy_pass $backend;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location / {
+            root /usr/share/nginx/html;
+            index index.html;
+            try_files $uri $uri/ /index.html;
+        }
+
+        error_page 404 /index.html;
+    }
+}
+NGINX
+
+docker build -t frontend .
+docker run --restart always -p 80:80 -d frontend

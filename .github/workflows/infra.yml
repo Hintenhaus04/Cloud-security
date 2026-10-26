@@ -1,0 +1,87 @@
+# Week 3.3: immutable infrastructure.
+# Iedere wijziging op main levert een volledig schone omgeving op: de bestaande
+# infrastructuur (alles in infra/, dus NIET de RDS database) wordt verwijderd en opnieuw opgebouwd.
+#
+# Benodigde instellingen in GitHub (Settings > Secrets and variables > Actions):
+#   Secrets:   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN  (uit Learner Lab > AWS Details,
+#              verlopen na elke lab-sessie), DB_PASSWORD
+#   Variables: TF_STATE_BUCKET, KEY_NAME, ADMIN_CIDR
+name: infra
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/infra.yml"
+  pull_request:
+    paths:
+      - "infra/**"
+      - "database/**"
+      - ".github/workflows/infra.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: infra-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TF_VERSION: "1.11.2"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - name: Format check
+        run: terraform fmt -check -recursive
+      - name: Validate infra
+        working-directory: infra
+        run: terraform init -backend=false -input=false && terraform validate
+      - name: Validate database
+        working-directory: database
+        run: terraform init -backend=false -input=false && terraform validate
+
+  deploy:
+    needs: validate
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+      AWS_REGION: us-east-1
+      TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+      TF_VAR_key_name: ${{ vars.KEY_NAME }}
+      TF_VAR_admin_cidr: ${{ vars.ADMIN_CIDR }}
+      TF_IN_AUTOMATION: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Check AWS credentials (Learner Lab sessie nog actief?)
+        run: aws sts get-caller-identity
+
+      - name: Terraform init
+        run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
+
+      - name: Destroy previous environment
+        run: terraform destroy -auto-approve -input=false
+
+      - name: Deploy clean environment
+        run: terraform apply -auto-approve -input=false
+
+      - name: Show outputs
+        run: terraform output
