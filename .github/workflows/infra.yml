@@ -18,7 +18,6 @@ on:
     paths:
       - "infra/**"
       - "database/**"
-      - "data-protection/**"
       - ".github/workflows/infra.yml"
   workflow_dispatch:
 
@@ -50,9 +49,6 @@ jobs:
         run: terraform init -backend=false -input=false && terraform validate
       - name: Validate monitoring
         working-directory: monitoring
-        run: terraform init -backend=false -input=false && terraform validate
-      - name: Validate data-protection
-        working-directory: data-protection
         run: terraform init -backend=false -input=false && terraform validate
 
   deploy:

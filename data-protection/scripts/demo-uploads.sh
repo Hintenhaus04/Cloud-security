@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # 4.2 / 4.4: demonstratie van de bucket policies.
-# Gebruik (in CloudShell, vanuit data-protection/ na terraform apply en byok-import.sh):
+# Gebruik (in CloudShell, vanuit data-protection/ na setup.sh en byok-import.sh):
 #   ./scripts/demo-uploads.sh
 set -uo pipefail
 
 ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
-KMS_ARN="$(terraform output -raw geheim_kms_key_arn)"
+KMS_ARN="$(aws kms describe-key --key-id alias/saxit-geheim-byok --query KeyMetadata.Arn --output text)"
 TMP="$(mktemp -d)"
 
 # expect <verwacht: OK|DENIED> <omschrijving> <commando...>

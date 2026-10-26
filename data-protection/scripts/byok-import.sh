@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # 4.3: eigen keymateriaal (BYOK) genereren met OpenSSL en importeren in AWS KMS.
 # Gebruik (in CloudShell, vanuit data-protection/):
-#   ./scripts/byok-import.sh "$(terraform output -raw geheim_kms_key_id)"
+#   ./scripts/byok-import.sh            (gebruikt alias/saxit-geheim-byok)
 set -euo pipefail
 
-KEY_ID="${1:?geef de KMS key id mee}"
+# Importeren kan alleen met de key id, niet met de alias; daarom eerst opzoeken.
+KEY_ID="$(aws kms describe-key --key-id "${1:-alias/saxit-geheim-byok}" --query KeyMetadata.KeyId --output text)"
+echo "KMS key: $KEY_ID"
 WORKDIR="$(mktemp -d)"
 cd "$WORKDIR"
 echo "Werkmap: $WORKDIR"
