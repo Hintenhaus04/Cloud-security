@@ -1,6 +1,12 @@
 #!/bin/bash
 exec > /var/log/user-data.log 2>&1
-apt-get update -y
+# Wacht tot apt de pakketlijsten echt kan ophalen: vlak na de uitrol laat de
+# NAT gateway (app tier) of het netwerk soms nog geen verkeer door.
+for i in $(seq 1 30); do
+  apt-get update -y && apt-cache policy docker.io | grep -q 'Candidate: [0-9]' && break
+  echo "apt nog niet bereikbaar, poging $i"
+  sleep 10
+done
 apt-get upgrade -y
 apt-get install -y docker.io git
 systemctl enable --now docker
