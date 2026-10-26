@@ -46,3 +46,10 @@ variable "db_password" {
   type      = string
   sensitive = true
 }
+
+# Week 6.1: Kinesis stream (aangemaakt in monitoring/) waar de docker logs heen gaan.
+# Zet op "" om de Kinesis agent niet te installeren.
+variable "kinesis_stream_name" {
+  type    = string
+  default = "saxit-docker-logs"
+}

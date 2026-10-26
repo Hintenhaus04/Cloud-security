@@ -49,4 +49,6 @@ http {
 NGINX
 
 docker build -t frontend .
-docker run --restart always -p 80:80 -d frontend
+docker run --name frontend --restart always -p 80:80 -d frontend
+
+${kinesis_setup}

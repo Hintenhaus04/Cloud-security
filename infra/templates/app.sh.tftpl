@@ -14,4 +14,6 @@ docker run --restart always \
   -e SPRING_DATASOURCE_URL=jdbc:mysql://${db_address}/${db_name} \
   -e SPRING_DATASOURCE_USERNAME='${db_username}' \
   -e SPRING_DATASOURCE_PASSWORD='${db_password}' \
-  -p 8080:8080 -d backend
+  -p 8080:8080 --name backend -d backend
+
+${kinesis_setup}

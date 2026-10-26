@@ -1,0 +1,49 @@
+# ---- Week 6.1: docker logs centraal naar Kinesis Data Streams ----
+# De Kinesis agent ondersteunt geen wildcards in mapnamen (/var/lib/docker/containers/<id>/),
+# daarom schrijft een kleine service de docker logs naar een vast bestand, met hostnaam ervoor.
+mkdir -p /var/log/saxit
+cat > /usr/local/bin/docker-log-export.sh <<'SCRIPT'
+#!/bin/bash
+until docker inspect ${container} >/dev/null 2>&1; do sleep 5; done
+docker logs -f --timestamps --tail 0 ${container} 2>&1 | sed -u 's/^/${hostname} ${container} /' >> /var/log/saxit/${container}.log
+SCRIPT
+chmod 755 /usr/local/bin/docker-log-export.sh
+
+cat > /etc/systemd/system/docker-log-export.service <<'UNIT'
+[Unit]
+Description=Docker logs van ${container} naar /var/log/saxit
+After=docker.service
+Requires=docker.service
+
+[Service]
+ExecStart=/usr/local/bin/docker-log-export.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload
+systemctl enable --now docker-log-export
+
+# Amazon Kinesis Agent bouwen en installeren (er is geen Ubuntu-pakket).
+# Credentials komen van het instance profile (LabInstanceProfile).
+apt-get install -y openjdk-17-jdk-headless ant wget
+git clone --depth 1 https://github.com/awslabs/amazon-kinesis-agent.git /opt/amazon-kinesis-agent
+cd /opt/amazon-kinesis-agent && ./setup --install
+
+cat > /etc/aws-kinesis/agent.json <<'JSON'
+{
+  "cloudwatch.emitMetrics": false,
+  "kinesis.endpoint": "https://kinesis.${region}.amazonaws.com",
+  "flows": [
+    {
+      "filePattern": "/var/log/saxit/${container}.log*",
+      "kinesisStream": "${stream_name}",
+      "partitionKeyOption": "RANDOM",
+      "initialPosition": "START_OF_FILE"
+    }
+  ]
+}
+JSON
+service aws-kinesis-agent restart

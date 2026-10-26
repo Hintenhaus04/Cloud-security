@@ -12,5 +12,8 @@ het AWS Learner Lab.
 | `docs/week3-infrastructure-protection.md` | Uitwerking opdracht 3.1 t/m 3.3                           |
 | `data-protection/`                   | S3 buckets per classificatie, BYOK KMS key, logging en alerts (week 4) |
 | `docs/week4-data-protection.md`      | Uitwerking opdracht 4.2 t/m 4.4                                |
+| `monitoring/`                        | Kinesis stream voor de docker logs (week 6.1)                  |
+| `log-analysis/`                      | Logfile-analyse met IsolationForest (week 6.5)                 |
+| `docs/week6-monitoring-logging.md`   | Uitwerking opdracht 6.1, 6.4 en 6.5                            |
 
 Begin bij [docs/01-omgeving-herbouwen.md](docs/01-omgeving-herbouwen.md).

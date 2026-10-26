@@ -48,6 +48,12 @@ resource "aws_instance" "web" {
   user_data = templatefile("${path.module}/templates/web.sh.tftpl", {
     app_lb_dns   = aws_lb.application-lb.dns_name
     dns_resolver = cidrhost(aws_vpc.saxit_vpc.cidr_block, 2)
+    kinesis_setup = var.kinesis_stream_name == "" ? "" : templatefile("${path.module}/templates/kinesis-agent.sh.tftpl", {
+      container   = "frontend"
+      hostname    = each.key
+      region      = var.region
+      stream_name = var.kinesis_stream_name
+    })
   })
   tags = {
     Name = each.key
@@ -73,6 +79,12 @@ resource "aws_instance" "app" {
     db_name     = var.db_name
     db_username = var.db_username
     db_password = var.db_password
+    kinesis_setup = var.kinesis_stream_name == "" ? "" : templatefile("${path.module}/templates/kinesis-agent.sh.tftpl", {
+      container   = "backend"
+      hostname    = each.key
+      region      = var.region
+      stream_name = var.kinesis_stream_name
+    })
   })
   tags = {
     Name = each.key
