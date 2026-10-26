@@ -106,14 +106,14 @@ de CloudTrail logs in de log bucket:
 
 ```bash
 LOGS=saxit-logs-$(aws sts get-caller-identity --query Account --output text)
-aws s3 cp "s3://$LOGS/AWSLogs/" ./trail --recursive --exclude "*" --include "*CloudTrail/*"
-zcat $(find trail -name '*.json.gz') | python3 -c '
-import json,sys
-for line in sys.stdin:
-    for r in json.loads(line)["Records"]:
+aws s3 cp "s3://$LOGS/AWSLogs/" /tmp/trail --recursive --exclude "*" --include "*CloudTrail/*" --quiet
+python3 - <<'PY'
+import glob, gzip, json
+for f in sorted(glob.glob("/tmp/trail/**/*.json.gz", recursive=True)):
+    for r in json.load(gzip.open(f))["Records"]:
         if r["eventName"] == "GetObject":
             print(r["eventTime"], r["eventName"], r["requestParameters"]["key"], r["userIdentity"]["arn"], r["sourceIPAddress"])
-'
+PY
 ```
 
 De S3 server access logs (`s3://<log_bucket>/s3-access/geheim/`) tonen dezelfde download als `REST.GET.OBJECT`,
