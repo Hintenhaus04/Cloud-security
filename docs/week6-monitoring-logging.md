@@ -4,7 +4,7 @@
 
 **Opbouw**
 
-- [`monitoring/kinesis.tf`](../monitoring/kinesis.tf): Kinesis Data Stream `saxit-docker-logs` (1 shard, 24 uur
+- [`monitoring/kinesis.tf`](../monitoring/kinesis.tf): Kinesis Data Stream `saxit-docker-logs` (1 shard, standaard 24 uur
   bewaartijd, versleuteld met KMS). Eigen map en state, zodat de logs blijven bestaan als de pipeline `infra/` opnieuw
   uitrolt.
 - [`infra/templates/kinesis-agent.sh.tftpl`](../infra/templates/kinesis-agent.sh.tftpl) wordt op alle vier de VM's
