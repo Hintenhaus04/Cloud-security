@@ -47,9 +47,6 @@ jobs:
       - name: Validate database
         working-directory: database
         run: terraform init -backend=false -input=false && terraform validate
-      - name: Validate monitoring
-        working-directory: monitoring
-        run: terraform init -backend=false -input=false && terraform validate
 
   deploy:
     needs: validate

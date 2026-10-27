@@ -4,9 +4,10 @@
 
 **Opbouw**
 
-- [`monitoring/kinesis.tf`](../monitoring/kinesis.tf): Kinesis Data Stream `saxit-docker-logs` (1 shard, standaard 24 uur
-  bewaartijd, versleuteld met KMS). Eigen map en state, zodat de logs blijven bestaan als de pipeline `infra/` opnieuw
-  uitrolt.
+- [`monitoring/scripts/create-stream.sh`](../monitoring/scripts/create-stream.sh): Kinesis Data Stream
+  `saxit-docker-logs` (1 shard, 24 uur bewaartijd, versleuteld met KMS). Los van `infra/`, zodat de logs blijven
+  bestaan als de pipeline `infra/` opnieuw uitrolt. Dit gaat met de AWS CLI en niet met Terraform: de AWS provider
+  roept bij het aanmaken altijd `IncreaseStreamRetentionPeriod` aan, en die actie blokkeert het Learner Lab met een SCP.
 - [`infra/templates/kinesis-agent.sh.tftpl`](../infra/templates/kinesis-agent.sh.tftpl) wordt op alle vier de VM's
   uitgevoerd bij het opstarten:
   1. De service `docker-log-export` schrijft de logs van de container (`frontend` of `backend`) naar
@@ -21,8 +22,7 @@
 
 ```bash
 cd Cloud-security/monitoring
-terraform init -backend-config="bucket=$STATE_BUCKET"
-terraform apply
+./scripts/create-stream.sh
 ```
 
 Rol daarna `infra/` opnieuw uit (pipeline of `terraform apply`), zodat de VM's de agent installeren. Wacht 15 tot
